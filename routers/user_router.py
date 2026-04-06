@@ -14,7 +14,7 @@ def register_user(user_data:UserCreate,db:Session=Depends(get_db)):
         return user
     except ValueError as e:
         raise HTTPException(400,detail=str(e))
-@router.get("/users/me")
+@router.get("/me")
 def get_me(current_user:User=Depends(get_user_object)):
     return{
         "user_id":current_user.user_id,
