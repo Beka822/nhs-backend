@@ -10,7 +10,7 @@ class UserCreate(BaseModel):
 class UserResponse(BaseModel):
     user_id:str
     full_name:str
-    hospital_id:str
+    hospital_id:Optional[str]=None
     role:UserRoles
     class Config:
         from_attributes=True
