@@ -29,4 +29,4 @@ def get_user_by_id(db:Session,user_id:str,current_user:User):
 def get_all_users(db:Session=Depends(get_db),current_user:User=Depends(get_user_object)):
     if current_user.role not in ["SUPER_ADMIN","ADMIN"]:
         raise PermissionError("Not authorized")
-    return db.query(User).filter(User.hospital_id==current_user.hospital_id).all()
+    return db.query(User).filter(User.hospital_id==current_user.hospital_id,User.role != "SUPER_ADMIN").all()
