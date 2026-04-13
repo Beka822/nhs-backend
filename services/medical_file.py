@@ -12,7 +12,7 @@ from fastapi import UploadFile,HTTPException
 from core.encryption import fernet
 import boto3
 from core.config import settings
-s3=boto3.client("s3",aws_access_key_id=settings.R2_ACCESS_KEY_ID,aws_secret_access_key=settings.R2_SECRET_ACCESS_KEY,region_name=settings.AWS_REGION)
+s3=boto3.client("s3",endpoint_url=settings.R2_ENDPOINT,aws_access_key_id=settings.R2_ACCESS_KEY_ID,aws_secret_access_key=settings.R2_SECRET_ACCESS_KEY)
 ALLOWED_MIME=["application/pdf","image/png","image/jpeg"]
 MAX_FILE_SIZE=10*1024*1024
 async def create_medical_file(db:Session,patient_id:str,file:UploadFile,current_user:dict):
