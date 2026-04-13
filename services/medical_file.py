@@ -12,7 +12,7 @@ from fastapi import UploadFile,HTTPException
 from core.encryption import fernet
 import boto3
 from core.config import settings
-s3=boto3.client("s3",aws_access_key_id=settings.AWS_ACCESS_KEY_ID,aws_secret_access_key=settings.AWS_SECRET_ACCESS_KEY,region_name=settings.AWS_REGION)
+s3=boto3.client("s3",aws_access_key_id=settings.R2_ACCESS_KEY_ID,aws_secret_access_key=settings.R2_SECRET_ACCESS_KEY,region_name=settings.AWS_REGION)
 ALLOWED_MIME=["application/pdf","image/png","image/jpeg"]
 MAX_FILE_SIZE=10*1024*1024
 async def create_medical_file(db:Session,patient_id:str,file:UploadFile,current_user:dict):
@@ -29,7 +29,7 @@ async def create_medical_file(db:Session,patient_id:str,file:UploadFile,current_
     file_ext=Path(file.filename).suffix
     file_key=f"{patient_id}/{file_id}_v{version}{file_ext}"
     file_obj=BytesIO(encrypted)
-    s3.upload_fileobj(file_obj,settings.AWS_BUCKET_NAME,file_key)
+    s3.upload_fileobj(file_obj,settings.R2_BUCKET_NAME,file_key)
     medical_file=MedicalFile(file_id=file_id,file_name=file.filename,patient_id=patient_id,file_size=file_size,file_key=file_key,file_mime=file.content_type,uploaded_by=current_user["sub"],version=version,uploaded_at=datetime.utcnow())
     db.add(medical_file)
     db.commit()
@@ -52,7 +52,7 @@ def download_medical_file(db:Session,patient_id:str,file_id:str,current_user:dic
     db.add(audit)
     db.commit()
     file_obj=BytesIO()
-    s3.download_fileobj(settings.AWS_BUCKET_NAME,medical_file.file_key,file_obj)
+    s3.download_fileobj(settings.R2_BUCKET_NAME,medical_file.file_key,file_obj)
     file_obj.seek(0)
     #encrypted_data=f.read()
     decrypted=fernet.decrypt(file_obj.read())
