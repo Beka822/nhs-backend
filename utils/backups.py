@@ -64,7 +64,9 @@ def verify_backup(bucket,key):
 def run_all_backups():
     logging.info("Starting full cloud-native backup sequence...")
     db=urlparse(settings.DATABASE_URL)
-    backup_postgres(db_name=db.path.lstrip("/")[-1],db_user=db.username.split(":")[1].split("@")[0])
+    db_name=db.path.lstrip("/")
+    db_user=db.username
+    backup_postgres(db_name=db_name,db_user=db_user)
     backup_medical_files()
     logging.info("Full cloud-native backup sequence completed successfully.")
 if __name__ == "__main__":
