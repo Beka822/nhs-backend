@@ -7,7 +7,7 @@ import boto3
 from urllib.parse import urlparse
 from cryptography.fernet import Fernet
 from core.config import settings
-logging.basicConfig(filename="logs/backup.log",level=logging.INFO,format="%(asctime)s [%(levelname)s %(message)s]")
+logging.basicConfig(level=logging.INFO,format="%(asctime)s [%(levelname)s %(message)s]")
 s3=boto3.client("s3",endpoint_url=settings.R2_ENDPOINT,aws_access_key_id=settings.R2_ACCESS_KEY_ID,aws_secret_access_key=settings.R2_SECRET_ACCESS_KEY)
 fernet=Fernet(settings.FILE_ENCRYPTION_KEY)
 def timestamp():
