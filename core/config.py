@@ -17,6 +17,7 @@ class Settings(BaseSettings):
     R2_ACCESS_KEY_ID:str
     R2_SECRET_ACCESS_KEY:str
     R2_BUCKET_NAME:str
+    R2_BACKUP_BUCKET:str
     R2_ENDPOINT:str
     AWS_REGION:str
     model_config=SettingsConfigDict(env_file=".env",env_file_encoding="utf-8",case_sensitive=True)
