@@ -15,8 +15,18 @@ def timestamp():
 def backup_postgres(db_name:str,db_user:str):
     try:
         logging.info("Starting Postgres backup...")
+        db=urlparse(settings.DATABASE_URL)
         with tempfile.NamedTemporaryFile() as tmp:
-           CMD=f"pg_dump -U {db_user} -F c -b -v {db_name} -f {tmp.name}"
+           #CMD=f"pg_dump -U {db_user} -F c -b -v {db_name} -f {tmp.name}"
+           CMD=(
+        f"PGPASSWORD={db.password}"
+        f"pg_dump -h {db.hostname}"
+        f"-U {db.username}"
+        f"-F c -b -v"
+        f"--no-owner --no-privileges"
+        f"{db.path.lstrip('/')}"
+        f"-f {tmp.name}"
+    )
            logging.info(f"Running command: {CMD}")
            result=subprocess.run(CMD,shell=True,check=True,capture_output=True,text=True)
            tmp.seek(0)
