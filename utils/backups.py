@@ -17,7 +17,8 @@ def backup_postgres(db_name:str,db_user:str):
         logging.info("Starting Postgres backup...")
         with tempfile.NamedTemporaryFile() as tmp:
            CMD=f"pg_dump -U {db_user} -F c -b -v {db_name} -f {tmp.name}"
-           subprocess.run(CMD,shell=True,check=True)
+           logging.info(f"Running command: {CMD}")
+           result=subprocess.run(CMD,shell=True,check=True,capture_output=True,text=True)
            tmp.seek(0)
            encrypted_data=fernet.encrypt(tmp.read())
         filename=f"backups/db/db_backup_{timestamp()}.dump.enc"
@@ -26,7 +27,7 @@ def backup_postgres(db_name:str,db_user:str):
             raise Exception("Postgres backup verification failed!")
         logging.info(f"Postgres backup uploaded to S3:{filename}")
     except subprocess.CalledProcessError as e:
-        logging.error(f"Postgres backup failed: {e.stderr.decode()}")
+        logging.error(f"Postgres backup failed: {e.stderr}")
         raise
     except Exception as e:
         logging.error(f"Unexpected error during Postgres backup: {e}")
