@@ -15,7 +15,7 @@ def create_bed_endpoint(request:BedCreateRequest,http_request:Request,db:Session
     except ValueError as e:
         raise HTTPException(400,detail=str(e))
 @router.get("/",response_model=list[BedResponse])
-def list_beds_endpoint(ward_id:str|None=None,db:Session=Depends(get_db),current_user:User=Depends(get_user_object),_:dict=Depends(require_roles("ADMIN","DOCTOR"))):
+def list_beds_endpoint(ward_id:str|None=None,db:Session=Depends(get_db),current_user:User=Depends(get_user_object),_:dict=Depends(require_roles("ADMIN","DOCTOR","NURSE"))):
     beds=get_beds(db=db,ward_id=ward_id,current_user=current_user)
     return beds
 @router.put("/{bed_id}",response_model=BedResponse)
