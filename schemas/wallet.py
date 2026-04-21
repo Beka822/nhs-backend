@@ -17,5 +17,6 @@ class WalletTransactionResponse(BaseModel):
         from_attributes=True
 class WalletTopUpRequest(BaseModel):
     phone_number:str
+    visit_id:str
     amount:float
     reference:Optional[str]=None

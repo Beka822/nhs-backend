@@ -3,6 +3,7 @@ from sqlalchemy.orm import Session
 import time
 from typing import Optional
 from models.user import User
+from models.visit import Visit
 from core.db import get_db
 from services.wallet import (get_wallet_by_patient,get_wallet_transactions,initiate_stk_push)
 from schemas.wallet import WalletResponse,WalletTransactionResponse,WalletTopUpRequest

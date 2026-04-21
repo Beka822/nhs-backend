@@ -1,13 +1,16 @@
 
 from sqlalchemy.orm import Session
+from fastapi import Request
 from sqlalchemy.exc import IntegrityError
 from models.visit import Visit
 from models.hospital import Hospital
-from services.wallet import debit_wallet,initiate_stk_push
+from models.pays import Pay
+from services.wallet import initiate_stk_push
 from models.patient import Patient
 from models.user import User
 from models.audit_log import AuditLog
 VISIT_FEE=20
+CLINIC_SHARE=10
 def create_visit(db:Session,data,current_user:User):
     try:
         patient=db.query(Patient).filter(Patient.patient_id==data.patient_id).first()
@@ -16,10 +19,11 @@ def create_visit(db:Session,data,current_user:User):
         visit=Visit(patient_id=patient.patient_id,symptoms=data.symptoms,diagnosis=data.diagnosis,treatment=data.treatment,notes=data.notes,hospital_id=current_user.hospital_id,created_by=current_user.user_id,payment_status="PENDING")
         db.add(visit)
         db.flush()
-        reference=f"visit_{visit.visit_id}"
-        success=debit_wallet(db=db,patient_id=patient.patient_id,amount=VISIT_FEE,reference=reference)
+        pay=db.query(Pay).filter(Pay.visit_id==visit.visit_id,Pay.status=="SUCCESS").first()
+        if pay:
+            raise Exception("Visit already paid")
         try:
-            stk_response=initiate_stk_push(Phone_number=patient.phone,amount=VISIT_FEE)
+            stk_response=initiate_stk_push(Phone_number=pay.phone_number,amount=VISIT_FEE,reference=f"visit_{visit.visit_id}")
         except Exception:
             stk_response={"message": "STK failed"}
         audit=AuditLog(action="CREATE_VISIT_PENDING",entity="Visit",entity_id=visit.visit_id)

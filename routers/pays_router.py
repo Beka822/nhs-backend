@@ -1,6 +1,11 @@
 from fastapi import APIRouter,Request,Depends
+from sqlalchemy import func
 from sqlalchemy.orm import Session
 from models.patient import Patient
+from datetime import datetime
+from models.pays import Pay
+from models.user import User
+from core.dependencies import get_user_object
 from models.visit import Visit
 from models.audit_log import AuditLog
 from models.pays import Pay
@@ -48,8 +53,28 @@ async def mpesa_callback(request:Request,db:Session=Depends(get_db)):
                 return {"ResultCode":0, "ResultDesc": "Duplicate ignored"}
             payment.mpesa_receipt=receipt
         payment.status="SUCCESS"
+        payment.amount=amount
+        payment.phone_number=str(phone)
         db.commit()
     else:
         payment.status="FAILED"
         db.commit()
     return {"ResultCode": 0, "ResultDesc": "Accepted"}
+@router.get("/payout")
+def get_revenue(db:Session=Depends(get_db),current_user:User=Depends(get_user_object)):
+    now=datetime.utcnow()
+    start_of_month=datetime(now.year,now.month,1)
+    if now.month==12:
+        end_of_month=datetime(now.year+1,1,1)
+    else:
+        end_of_month=datetime(now.year,now.month+1,1)
+    hospital_id=current_user.hospital_id
+    result=db.query(Pay.clinical_id,func.count(Pay.payment_id).label("total_visits"),func.sum(Pay.amount).label("total_revenue"),func.sum(Pay.clinic_share).label("clinic_earnings"),).filter(Pay.clinical_id==hospital_id,Pay.status=="SUCCESS",Pay.created_at>=start_of_month,Pay.created_at<end_of_month).group_by(Pay.clinical_id).first()
+    return{
+        "hospital_name":current_user.hospital_id,
+        "total_visits":result.total_visits,
+        "total_revenue":result.total_revenue
+        if result else 0,
+        "clinic_earnings":result.clinic_earnings if result else 0,
+        "month":start_of_month.strftime("%B%Y")
+    }
