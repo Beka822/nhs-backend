@@ -2,6 +2,7 @@ from fastapi import APIRouter,Request,Depends
 from sqlalchemy import func
 from sqlalchemy.orm import Session
 from models.patient import Patient
+from models.hospital import Hospital
 from datetime import datetime
 from models.pays import Pay
 from models.user import User
@@ -68,10 +69,11 @@ def get_revenue(db:Session=Depends(get_db),current_user:User=Depends(get_user_ob
         end_of_month=datetime(now.year+1,1,1)
     else:
         end_of_month=datetime(now.year,now.month+1,1)
-    hospital_id=current_user.hospital_id
-    result=db.query(Pay.clinical_id,func.count(Pay.payment_id).label("total_visits"),func.sum(Pay.amount).label("total_revenue"),func.sum(Pay.clinic_share).label("clinic_earnings"),).filter(Pay.clinical_id==hospital_id,Pay.status=="SUCCESS",Pay.created_at>=start_of_month,Pay.created_at<end_of_month).group_by(Pay.clinical_id).first()
+    hospital=db.query(Hospital).filter(Hospital.hospital_id==current_user.hospital_id).first()
+    hospital_name=hospital.hospital_name if hospital else "Unknown Hospital"
+    result=db.query(Pay.clinical_id,func.count(Pay.payment_id).label("total_visits"),func.sum(Pay.amount).label("total_revenue"),func.sum(Pay.clinic_share).label("clinic_earnings"),).filter(Pay.clinical_id==current_user.hospital_id,Pay.status=="SUCCESS",Pay.created_at>=start_of_month,Pay.created_at<end_of_month).group_by(Pay.clinical_id).first()
     return{
-        "hospital_name":current_user.hospital_id,
+        "hospital_name":hospital_name,
         "total_visits":result.total_visits,
         "total_revenue":result.total_revenue
         if result else 0,
