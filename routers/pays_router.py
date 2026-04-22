@@ -3,6 +3,7 @@ from sqlalchemy import func
 from sqlalchemy.orm import Session
 from models.patient import Patient
 from models.hospital import Hospital
+from schemas.pays import RevenueResponse
 from datetime import datetime
 from models.pays import Pay
 from models.user import User
@@ -61,22 +62,45 @@ async def mpesa_callback(request:Request,db:Session=Depends(get_db)):
         payment.status="FAILED"
         db.commit()
     return {"ResultCode": 0, "ResultDesc": "Accepted"}
-@router.get("/payout")
+@router.get("/payout",response_model=RevenueResponse)
 def get_revenue(db:Session=Depends(get_db),current_user:User=Depends(get_user_object)):
-    now=datetime.utcnow()
-    start_of_month=datetime(now.year,now.month,1)
-    if now.month==12:
-        end_of_month=datetime(now.year+1,1,1)
-    else:
-        end_of_month=datetime(now.year,now.month+1,1)
-    hospital=db.query(Hospital).filter(Hospital.hospital_id==current_user.hospital_id).first()
-    hospital_name=hospital.hospital_name if hospital else "Unknown Hospital"
-    result=db.query(Pay.clinical_id,func.count(Pay.payment_id).label("total_visits"),func.sum(Pay.amount).label("total_revenue"),func.sum(Pay.clinic_share).label("clinic_earnings"),).filter(Pay.clinical_id==current_user.hospital_id,Pay.status=="SUCCESS",Pay.created_at>=start_of_month,Pay.created_at<end_of_month).group_by(Pay.clinical_id).first()
-    return{
-        "hospital_name":hospital_name,
-        "total_visits":result.total_visits,
-        "total_revenue":result.total_revenue
-        if result else 0,
-        "clinic_earnings":result.clinic_earnings if result else 0,
-        "month":start_of_month.strftime("%B%Y")
-    }
+    try:
+        hospital_id=current_user.hospital_id
+        hospital=db.query(Hospital).filter(Hospital.hospital_id==hospital_id).first()
+        hospital_name=hospital.hospital_name if hospital else "Unknown Hospital"
+        now=datetime.utcnow()
+        start_of_month=datetime(now.year,now.month,1)
+        if now.month==12:
+            end_of_month=datetime(now.year+1,1,1)
+        else:
+            end_of_month=datetime(now.year,now.month+1,1)
+        result=db.query(
+            func.count(Pay.payment_id).label("total_visits"),
+            func.sum(Pay.amount).label("total_revenue"),
+            func.sum(Pay.clinic_share).label("clinic_earnings")
+        ).filter(
+            Pay.clinical_id==hospital_id,
+            Pay.status=="SUCCESS",
+            Pay.created_at>=start_of_month,
+            Pay.created_at<end_of_month
+        ).first()
+        total_visits=result.total_visits if result and result.total_visits else 0
+        total_revenue=result.total_revenue if result and result.total_revenue else 0
+        clinic_earnings=result.clinic_earnings if result and result.clinic_earnings else 0
+        return{
+            "hospital_name":hospital_name,
+            "total_visits":total_visits,
+            "total_revenue":total_revenue,
+            "clinic_earnings":clinic_earnings,
+            "month":start_of_month.strftime("%B %Y")
+        }
+    except Exception as e:
+        import traceback
+        traceback.print_exc()
+        return{
+            "hospital_name":"Error",
+            "total_visits": 0,
+            "total_revenue":0,
+            "clinic_earnings":0,
+            "month":"Error"
+        }
