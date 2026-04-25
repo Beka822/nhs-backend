@@ -17,7 +17,7 @@ def transfer_patient(db:Session,admission_id:str,new_bed_id:str,reason:str,curre
         raise ValueError("New bed not found")
     if new_bed.status !="AVAILABLE":
         raise ValueError("New bed is not availble. may be occupied")
-    if new_bed.is_icu and current_user["role"] != "DOCTOR":
+    if new_bed.is_icu and current_user.role != "DOCTOR":
         raise ValueError("Only doctors can transfer patients to ICU")
     old_bed.status="AVAILABLE"
     new_bed.status="OCCUPIED"
