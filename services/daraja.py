@@ -28,7 +28,7 @@ def call_daraja_api(phone,amount,reference):
         "BusinessShortCode":settings.MPESA_SHORTCODE,
         "Password": password,
         "Timestamp":timestamp,
-        "TransactionType": "CustomerPayBillOnline",
+        "TransactionType": "CustomerBuyGoodsOnline",
         "Amount": amount,
         "PartyA": phone,
         "PartyB": settings.MPESA_SHORTCODE,
