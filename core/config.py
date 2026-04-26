@@ -12,6 +12,7 @@ class Settings(BaseSettings):
     MPESA_CONSUMER_KEY:str
     MPESA_CONSUMER_SECRET:str
     MPESA_SHORTCODE:str
+    MPESA_TILL:str
     MPESA_PASSKEY:str
     MPESA_CALLBACK_URL:str
     R2_ACCESS_KEY_ID:str

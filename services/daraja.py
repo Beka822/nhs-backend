@@ -31,7 +31,7 @@ def call_daraja_api(phone,amount,reference):
         "TransactionType": "CustomerBuyGoodsOnline",
         "Amount": amount,
         "PartyA": phone,
-        "PartyB": settings.MPESA_SHORTCODE,
+        "PartyB": settings.MPESA_TILL,
         "PhoneNumber":phone,
         "CallBackURL":settings.MPESA_CALLBACK_URL,
         "AccountReference":reference,
