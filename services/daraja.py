@@ -43,6 +43,7 @@ def call_daraja_api(phone,amount,reference):
     }
     print(json.dumps(payload, indent=2))
     response = requests.post(url,json=payload,headers=headers)
+    print("STK RESPONSE:",response)
     try:
         data=response.json()
     except ValueError:
