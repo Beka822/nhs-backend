@@ -22,5 +22,5 @@ def topup(
     db:Session=Depends(get_db),
     current_user:User=Depends(get_user_object)
 ):
-    response=initiate_stk_push(db=db,Phone_number=request.phone_number,amount=request.amount,reference=request.reference)
+    response=initiate_stk_push(db=db,Phone_number=request.phone_number,amount=request.amount,reference=request.reference,current_user=current_user)
     return response

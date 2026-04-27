@@ -34,7 +34,7 @@ async def mpesa_callback(request:Request,db:Session=Depends(get_db)):
        # phone=next((item["Value"] for item in
                    #metadata if item.get("Name")=="PhoneNumber"),"25400000000")
         #Extract visit_id
-        visit_id=payment.reference.split("_")[1]
+        visit_id=payment.visit_id
         #Credit wallet
         visit=db.query(Visit).filter(Visit.visit_id==visit_id).first()
         if visit:

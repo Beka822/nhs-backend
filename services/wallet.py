@@ -1,5 +1,6 @@
 from models.wallet import Wallet,WalletTransaction
 from models.patient import Patient
+from models.user import User
 from services.daraja import call_daraja_api
 from models.pays import Pay
 from uuid import uuid4
@@ -44,11 +45,14 @@ def credit_wallet(db,patient_id:str,amount:float,reference:str):
     db.add(txn)
     db.commit()
     return True
-def initiate_stk_push(db,Phone_number:str,amount:float,reference):
+def initiate_stk_push(db,Phone_number:str,amount:float,reference:str,current_user:User):
     formatted_phone=format_phone(Phone_number)
+    visit_id=None
+    if reference and "_" in reference:
+        visit_id=reference.split("_")[1]
     response=call_daraja_api(phone=formatted_phone,amount=amount,reference=reference)
     checkout_id=response.get("CheckoutRequestID")
-    payment=Pay(phone_number=formatted_phone,amount=amount,checkout_request_id=checkout_id,reference=reference,status="PENDING")
+    payment=Pay(phone_number=formatted_phone,amount=amount,checkout_request_id=checkout_id,reference=reference,status="PENDING",visit_id=visit_id,clinical_id=current_user.hospital_id)
     db.add(payment)
     db.commit()
     return response
