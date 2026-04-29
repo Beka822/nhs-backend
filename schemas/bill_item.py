@@ -1,5 +1,6 @@
 from pydantic import BaseModel
 class BillItemCreate(BaseModel):
+    service_id:str
     description:str
     quantity:int
     unit_price:float

@@ -7,6 +7,7 @@ class BillItem(Base):
     __tablename__="bill_items"
     item_id:Mapped[str]=mapped_column(String,primary_key=True,default=lambda:str(uuid.uuid4()),nullable=False,index=True)
     bill_id:Mapped[str]=mapped_column(String,ForeignKey("bills.bill_id"),index=True)
+    service_id:Mapped[str | None]=mapped_column(String,ForeignKey("services.service_id"),nullable=True,index=True)
     description:Mapped[str]=mapped_column(String)
     quantity:Mapped[int]=mapped_column(Integer)
     unit_price:Mapped[float]=mapped_column(Float)
