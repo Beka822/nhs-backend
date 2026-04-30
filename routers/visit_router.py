@@ -1,9 +1,10 @@
 from fastapi import APIRouter,Depends,HTTPException
 from sqlalchemy.orm import Session
+from models.visit import Visit
 from models.user import User
 from core.dependencies import get_user_object
 from core.db import get_db
-from schemas.visit import VisitCreate,VisitResponse,ResponseModel
+from schemas.visit import VisitCreate,VisitResponse,ResponseModel,VisitUpdate
 from services.visit import (create_visit,get_visit_by_id,get_all_visits_for_patient)
 from core.permissions import require_roles
 router=APIRouter(prefix="/visits",tags=["Visits"])
@@ -23,4 +24,21 @@ def read_visit(patient_id:str,visit_id:str,db:Session=Depends(get_db),current_us
 @router.get("/{patient_id}",response_model=list[VisitResponse])
 def read_all_visits(patient_id:str,db:Session=Depends(get_db),current_user:dict=Depends(require_roles("ADMIN","DOCTOR","NURSE"))):
     return get_all_visits_for_patient(db,patient_id)
+@router.put("/visits/{visit_id}")
+def update_visit(
+    data:VisitUpdate,
+    db:Session=Depends(get_db),
+    current_user:User=Depends(get_user_object)
+):
+    visit=db.query(Visit).filter(Visit.hospital_id==current_user.hospital_id).first()
+    if not visit:
+        raise ValueError("Visit not found")
+    visit.symptoms=data.symptoms
+    visit.diagnosis=data.diagnosis
+    visit.treatment=data.treatment
+    visit.notes=data.notes
+    visit.status="COMPLETED"
+    db.commit()
+    db.refresh(visit)
+    return visit
 

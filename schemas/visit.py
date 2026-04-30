@@ -4,9 +4,9 @@ from typing import Optional,Union
 class VisitCreate(BaseModel):
     hospital_id:str
     patient_id:str
-    symptoms:str
-    diagnosis:str
-    treatment:str
+    symptoms:str |None=None
+    diagnosis:str |None=None
+    treatment:str |None=None
     notes:str|None=None
     payment_status:str
 class VisitResponse(BaseModel):
@@ -25,5 +25,10 @@ class VisitSuccess(BaseModel):
     status:str
     visit:Optional[VisitResponse]=None
     stk:Optional[dict]=None
+class VisitUpdate(BaseModel):
+    symptoms:str
+    diagnosis:str
+    treatment:str
+    notes:str
 ResponseModel=VisitSuccess
         
