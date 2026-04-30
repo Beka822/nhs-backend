@@ -16,6 +16,7 @@ class VisitResponse(BaseModel):
     diagnosis:str |None=None
     treatment:str |None=None
     notes:str|None=None
+    status:str
     payment_status:str
     created_by:str
     created_at:datetime
