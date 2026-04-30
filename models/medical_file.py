@@ -6,6 +6,7 @@ class MedicalFile(Base):
     __tablename__="medical_files"
     id:Mapped[int]=mapped_column(Integer,primary_key=True,index=True,autoincrement=True)
     file_id:Mapped[str]=mapped_column(String,unique=True,nullable=False,index=True)
+    hospital_id:Mapped[str]=mapped_column(ForeignKey("hospitals.hospital_id"),index=True,nullable=False)
     file_name:Mapped[str]=mapped_column(String,nullable=True)
     patient_id:Mapped[str]=mapped_column(String,ForeignKey("patients.patient_id"),nullable=False,index=True)
     file_size:Mapped[float]=mapped_column(Float,nullable=False)

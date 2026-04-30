@@ -1,6 +1,7 @@
 import os,uuid
 from pathlib import Path
 from datetime import datetime
+from models.user import User
 from fastapi.responses import StreamingResponse
 from io import BytesIO
 import re
@@ -38,9 +39,9 @@ async def create_medical_file(db:Session,patient_id:str,file:UploadFile,current_
     db.add(audit)
     db.commit()
     return medical_file
-def download_medical_file(db:Session,patient_id:str,file_id:str,current_user:dict):
+def download_medical_file(db:Session,patient_id:str,file_id:str,current_user:User):
     """Return decrypted file path (or generated signed URL in cloud)"""
-    medical_file=db.query(MedicalFile).filter(MedicalFile.file_id==file_id).first()
+    medical_file=db.query(MedicalFile).filter(MedicalFile.hospital_id==current_user.hospital_id,MedicalFile.file_id==file_id).first()
     if not medical_file or medical_file.patient_id != patient_id:
         raise ValueError("File not found")
     #update download metadata
@@ -57,11 +58,11 @@ def download_medical_file(db:Session,patient_id:str,file_id:str,current_user:dic
     #encrypted_data=f.read()
     decrypted=fernet.decrypt(file_obj.read())
     return StreamingResponse(BytesIO(decrypted),media_type=medical_file.file_mime,headers={"Content-Disposition":f"attachment;filename={medical_file.file_name}"})
-def get_medical_file_by_patient(db:Session,patient_id:str,current_user):
+def get_medical_file_by_patient(db:Session,patient_id:str,current_user:User):
     patient=db.query(Patient).filter(Patient.patient_id==patient_id).first()
     if not patient:
         raise ValueError("Patient not found")
-    files=(db.query(MedicalFile.file_id,MedicalFile.file_name).filter(MedicalFile.patient_id==patient_id).all())
+    files=(db.query(MedicalFile.file_id,MedicalFile.file_name).filter(MedicalFile.hospital_id==current_user.hospital_id,MedicalFile.patient_id==patient_id).all())
     return files
     
     
