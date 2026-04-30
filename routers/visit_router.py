@@ -24,7 +24,7 @@ def read_visit(patient_id:str,visit_id:str,db:Session=Depends(get_db),current_us
 @router.get("/{patient_id}",response_model=list[VisitResponse])
 def read_all_visits(patient_id:str,db:Session=Depends(get_db),current_user:dict=Depends(require_roles("ADMIN","DOCTOR","NURSE"))):
     return get_all_visits_for_patient(db,patient_id)
-@router.put("/visits/{visit_id}")
+@router.put("/{visit_id}")
 def update_visit(
     data:VisitUpdate,
     db:Session=Depends(get_db),
