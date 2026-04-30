@@ -26,11 +26,12 @@ def read_all_visits(patient_id:str,db:Session=Depends(get_db),current_user:dict=
     return get_all_visits_for_patient(db,patient_id)
 @router.put("/{visit_id}")
 def update_visit(
+    visit_id:str,
     data:VisitUpdate,
     db:Session=Depends(get_db),
     current_user:User=Depends(get_user_object)
 ):
-    visit=db.query(Visit).filter(Visit.hospital_id==current_user.hospital_id).first()
+    visit=db.query(Visit).filter(Visit.visit_id==visit_id,Visit.hospital_id==current_user.hospital_id).first()
     if not visit:
         raise ValueError("Visit not found")
     visit.symptoms=data.symptoms
