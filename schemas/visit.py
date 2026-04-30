@@ -11,11 +11,11 @@ class VisitCreate(BaseModel):
     payment_status:str
 class VisitResponse(BaseModel):
     visit_id:str
-    patient_id:str
-    symptoms:str
-    diagnosis:str
-    treatment:str
-    notes:str|None
+    patient_id:str 
+    symptoms:str |None=None
+    diagnosis:str |None=None
+    treatment:str |None=None
+    notes:str|None=None
     payment_status:str
     created_by:str
     created_at:datetime
