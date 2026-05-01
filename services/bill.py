@@ -1,6 +1,6 @@
 from models.audit_log import AuditLog
 from models.bill import Bill
-from datetime import datetime
+from datetime import datetime,timedelta
 from models.payment import Payment
 from models.patient import Patient
 from models.admission import Admission
@@ -44,7 +44,25 @@ def create_bill(db,visit_id,data,current_user:User):
     db.commit()
     db.refresh(bill)
     return build_bill_response(db,bill)
-def get_all_bills(db,current_user:User,start_date=None,end_date=None):
+def get_all_bills(db,current_user:User,period:str):
+    now=datetime.utcnow()
+    start_date=None
+    end_date=None
+    if period=="today":
+        start_date=datetime(now.year,now.month,now.day)
+        end_date=start_date + timedelta(days=1)
+    elif period=="week":
+        start_date=now-timedelta(days=7)
+        end_date=now
+    elif period == "month":
+        start_date=datetime(now.year,now.month,1)
+        if now.month==12:
+            end_date=datetime(now.year+1,1,1)
+        else:
+            end_date=datetime(now.year,now.month + 1,1)
+    elif period=="year":
+        start_date=datetime(now.year,1,1)
+        end_date=datetime(now.year+1,1,1)
     query=db.query(Bill).filter(Bill.hospital_id==current_user.hospital_id)
     if start_date:
         query=query.filter(Bill.created_at >= start_date)
