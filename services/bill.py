@@ -64,11 +64,12 @@ def get_all_bills(db,current_user:User,period:str):
         start_date=datetime(now.year,1,1)
         end_date=datetime(now.year+1,1,1)
     query=db.query(Bill).filter(Bill.hospital_id==current_user.hospital_id)
-    if start_date:
-        query=query.filter(Bill.created_at >= start_date)
-    if end_date:
-        query=query.filter(Bill.created_at <= end_date)
-    bills=db.query(Bill).filter(Bill.hospital_id==current_user.hospital_id).order_by(Bill.created_at.desc()).all()
+    if start_date and end_date:
+        query=query.filter(Bill.created_at >= start_date,Bill.created_at < end_date)
+    #if end_date:
+        #query=query.filter(Bill.created_at <= end_date)
+    #bills=db.query(Bill).filter(Bill.hospital_id==current_user.hospital_id).order_by(Bill.created_at.desc()).all()
+    bills=query.order_by(Bill.created_at.desc()).all()
     results=[]
     for bill in bills:
         visit=db.query(Visit).filter(Visit.visit_id==bill.visit_id).first()
