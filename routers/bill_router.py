@@ -15,8 +15,8 @@ def create_bill_route(visit_id:str=Query(...,description="Visit ID"),bill_data:B
     bill=create_bill(db,visit_id,bill_data,current_user)
     return bill
 @router.get("/bills",response_model=List[BillResponse])
-def get_bills_route(start_date:datetime=Query(None),end_date:datetime=Query(None),db:Session=Depends(get_db),current_user:User=Depends(get_user_object)):
-    bills=get_all_bills(db,current_user,start_date,end_date)
+def get_bills_route(period:str,db:Session=Depends(get_db),current_user:User=Depends(get_user_object)):
+    bills=get_all_bills(db,current_user,period)
     return bills
 @router.get("/{bill_id}",response_model=BillResponse)
 def get_bill_route(bill_id:str,db:Session=Depends(get_db),current_user:User=Depends(get_user_object)):
