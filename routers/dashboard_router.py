@@ -149,7 +149,7 @@ def get_icu_occupancy(db:Session=Depends(get_db),current_user:User=Depends(get_u
     latest=data[-1] if data else None
     occupancy_rate=float(latest[3]) if latest else 0
     return {
-        "treand": [
+        "trend": [
             {
                 "date": row[0],
                 "occupied_beds": row[1],
