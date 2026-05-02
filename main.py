@@ -22,6 +22,7 @@ from routers.payment_router import router as payment_router
 from routers.pays_router import router as pays_router
 from routers.wallet_router import router as wallet_router
 from routers.services_router import router as services_router
+from routers.dashboard_router import router as dashboard_router
 from core.config import settings
 
 setup_logging()
@@ -54,7 +55,7 @@ app.include_router(payment_router)
 app.include_router(pays_router)
 app.include_router(wallet_router)
 app.include_router(services_router)
-
+app.include_router(dashboard_router)
 
 
 
