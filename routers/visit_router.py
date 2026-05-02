@@ -15,15 +15,15 @@ def register_visit(data:VisitCreate,db:Session=Depends(get_db),current_user:User
     except ValueError as e:
         raise HTTPException(400,detail=str(e))
 @router.get("/{patient_id}/{visit_id}",response_model=VisitResponse)
-def read_visit(patient_id:str,visit_id:str,db:Session=Depends(get_db),current_user:dict=Depends(require_roles("ADMIN","DOCTOR","NURSE","STAFF"))):
-    visit=get_visit_by_id(db,patient_id,visit_id)
+def read_visit(patient_id:str,visit_id:str,db:Session=Depends(get_db),current_user:User=Depends(get_user_object),_:dict=Depends(require_roles("ADMIN","DOCTOR","NURSE","STAFF"))):
+    visit=get_visit_by_id(db,patient_id,visit_id,current_user)
     db.refresh(visit)
     if not visit:
         raise HTTPException(404,detail="Visit not found")
     return visit
 @router.get("/{patient_id}",response_model=list[VisitResponse])
-def read_all_visits(patient_id:str,db:Session=Depends(get_db),current_user:dict=Depends(require_roles("ADMIN","DOCTOR","NURSE","STAFF"))):
-    return get_all_visits_for_patient(db,patient_id)
+def read_all_visits(patient_id:str,db:Session=Depends(get_db),current_user:User=Depends(get_user_object),_:dict=Depends(require_roles("ADMIN","DOCTOR","NURSE","STAFF"))):
+    return get_all_visits_for_patient(db,patient_id,current_user)
 @router.put("/{visit_id}")
 def update_visit(
     visit_id:str,
