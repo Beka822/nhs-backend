@@ -39,6 +39,6 @@ def create_visit(db:Session,data,current_user:User):
         db.rollback
         raise e
 def get_visit_by_id(db:Session,patient_id:str,visit_id:str,current_user:User):
-    return db.query(Visit).filter(Visit.hospital_id==current_user.hospital_id,Visit.created_by==Visit.patient_id==patient_id,Visit.visit_id==visit_id).first()
+    return db.query(Visit).filter(Visit.hospital_id==current_user.hospital_id,Visit.created_by==current_user.user_id,Visit.patient_id==patient_id,Visit.visit_id==visit_id).first()
 def get_all_visits_for_patient(db:Session,patient_id:str,current_user:User):
     return db.query(Visit).filter(Visit.hospital_id==current_user.hospital_id,Visit.patient_id==patient_id).all()
