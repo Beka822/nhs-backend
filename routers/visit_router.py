@@ -17,7 +17,7 @@ def register_visit(data:VisitCreate,db:Session=Depends(get_db),current_user:User
 @router.get("/{patient_id}/{visit_id}",response_model=VisitResponse)
 def read_visit(patient_id:str,visit_id:str,db:Session=Depends(get_db),current_user:User=Depends(get_user_object),_:dict=Depends(require_roles("ADMIN","DOCTOR","NURSE","STAFF"))):
     visit=get_visit_by_id(db,patient_id,visit_id,current_user)
-    db.refresh(visit)
+    #db.refresh(visit)
     if not visit:
         raise HTTPException(404,detail="Visit not found")
     return visit
