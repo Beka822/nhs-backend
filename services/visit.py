@@ -4,6 +4,7 @@ from fastapi import Request
 from sqlalchemy.exc import IntegrityError
 from models.visit import Visit
 from models.hospital import Hospital
+from core.kpi_instance import kpi
 from models.pays import Pay
 from services.wallet import initiate_stk_push
 from models.patient import Patient
@@ -29,6 +30,7 @@ def create_visit(db:Session,data,current_user:User):
         audit=AuditLog(action="CREATE_VISIT_PENDING",entity="Visit",entity_id=visit.visit_id)
         db.add(audit)
         db.commit()
+        kpi.emit_event("visit_created")
         db.refresh(visit)
         return {
             "status": "PENDING",

@@ -1,6 +1,7 @@
 from sqlalchemy.orm import Session
 from models.admission import Admission
 from models.user import User
+from core.kpi_instance import kpi
 from models.bed import Bed
 from models.audit_log import AuditLog
 from models.transfer import Transfer
@@ -28,6 +29,7 @@ def transfer_patient(db:Session,admission_id:str,new_bed_id:str,reason:str,curre
     db.add(AuditLog(action="TRANSFER_PATIENT",entity="Transfer",entity_id=transfer.transfer_id))
     db.add(Notification(message=f"Patient moved from bed {old_bed.code} to {new_bed.code}"))
     db.commit()
+    kpi.emit_event("bed_transfer")
     db.refresh(transfer)
     return transfer
     

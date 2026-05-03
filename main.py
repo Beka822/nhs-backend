@@ -1,6 +1,7 @@
 from fastapi import FastAPI,HTTPException
 from fastapi.middleware.cors import CORSMiddleware
 from core.logging import setup_logging
+from core.kpi_instance import kpi
 from core.exceptions import (app_exception_handler,validation_exception_handler,http_exception_handler,general_exception_handler,AppException)
 from fastapi.exceptions import RequestValidationError
 from core.middleware import CorrelationIdMiddleware
@@ -27,6 +28,9 @@ from core.config import settings
 
 setup_logging()
 app=FastAPI(title="Universal Electronic Health System",description="Backend API for managing patients,visits,medical files, and healthcare operations.",version="1.0.0")
+@app.on_event("startup")
+def startup():
+    kpi.start_worker()
 
 origins=settings.FRONTEND_URLS.split(",")
 app.add_middleware(CORSMiddleware,allow_origins=origins,allow_credentials=True,allow_methods=["*"],allow_headers=["*"])

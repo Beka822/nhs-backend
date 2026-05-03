@@ -3,6 +3,7 @@ from datetime import datetime
 from sqlalchemy.orm import Session
 from schemas.admission import AdmissionCreate
 from models.user import User
+from core.kpi_instance import kpi
 from models.bed import Bed
 from models.patient import Patient
 from models.audit_log import AuditLog
@@ -27,6 +28,7 @@ async def create_admission(data:AdmissionCreate,db:Session,visit_id:str,current_
     bed.status="OCCUPIED"
     db.add(AuditLog(action="CREATE_ADMISSION",entity="Admission",entity_id=admission.admission_id))
     db.commit()
+    kpi.emit_event("admission_created")
     db.refresh(admission)
     
     return admission
@@ -44,6 +46,7 @@ async def discharge_patient(db:Session,admission_id:str,current_user:User):
         bed.status="AVAILABLE"
     db.add(AuditLog(action="DISCHARGE",entity="Admission",entity_id=admission.admission_id))
     db.commit()
+    kpi.emit_event("discharge_created")
     db.refresh(admission)
     
     return admission
