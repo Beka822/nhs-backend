@@ -192,7 +192,7 @@ def get_los_analytics(period:str="month",db:Session=Depends(get_db),current_user
         start=datetime(now.year,1,1)
     else:
         start=None
-    query=""" SELECT
+    query="""SELECT
     ward_name,service_name,
     AVG(avg_los) as avg_los,
     AVG(median_los) as median_los,
@@ -205,6 +205,7 @@ def get_los_analytics(period:str="month",db:Session=Depends(get_db),current_user
     if start:
         query += "AND date >= :start"
         params["start"]=start
+
     query += """ GROUP BY ward_name,service_name
     ORDER BY efficiency DESC
     LIMIT 10 
