@@ -9,6 +9,7 @@ from core.db import Base
 class Payment(Base):
     __tablename__="payments"
     payment_id:Mapped[str]=mapped_column(String,primary_key=True,default=lambda:str(uuid.uuid4()),index=True)
+    hospital_id:Mapped[str]=mapped_column(ForeignKey("hospitals.hospital_id"),nullable=False,index=True)
     bill_id:Mapped[str]=mapped_column(ForeignKey("bills.bill_id"),nullable=False,index=True)
     amount:Mapped[float]=mapped_column(Float,nullable=False)
     remaining:Mapped[float]=mapped_column(Float,nullable=True)

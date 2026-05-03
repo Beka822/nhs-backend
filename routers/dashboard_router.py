@@ -254,3 +254,115 @@ def get_top_transfer_reasons(year:int,month:int,db:Session=Depends(get_db),curre
         }
         for row in data
     ]
+@router.get("/payment-analytics")
+def get_payment_analytics(
+    period:str="month",
+    db:Session=Depends(get_db),
+    current_user:User=Depends(get_user_object)
+):
+    hospital_id=current_user.hospital_id
+    today=datetime.utcnow().date()
+    if period =="today":
+        start=today
+        end=today + timedelta(days=1)
+    elif period=="week":
+        start = today - timedelta(days=today.weekday())
+        end=start + timedelta(days=7)
+    elif period=="month":
+        start=today.replace(day=1)
+        end=(start + timedelta(days=32)).replace(day=1)
+    elif period=="year":
+        start=today.replace(month=1,day=1)
+        end=start.replace(year=start.year +1)
+    else:
+        start=today.replace(day=1)
+        end=(start + timedelta(days=32)).replace(day=1)
+    distribution=db.execute(text("""
+                                 SELECT
+                                 payment_method,
+                                 SUM(total_amount) AS amount
+                                 FROM mv_payment_analytics
+                                 WHERE hospital_id=:hospital_id
+                                 AND date >=:start AND date <:end
+                                 GROUP BY payment_method
+                                 """),{
+                                     "hospital_id":hospital_id,
+                                     "start":start,
+                                     "end":end
+                                 }).fetchall()
+    total=sum(row[1] or 0 for row in distribution)
+    pie=[
+        {
+            "method":row[0],
+            "amount": float(row[1] or 0),
+            "percentage":round((row[1]/total)*100,2) if total else 0
+        }
+        for row in distribution
+    ]
+    trend=db.execute(text("""
+                          SELECT
+                          date,
+                          SUM(total_amount) AS revenue
+                          FROM mv_payment_analytics
+                          WHERE hospital_id=:hospital_id
+                          AND date >=:start AND date<:end
+                          GROUP BY date
+                          ORDER BY date
+                          """),{
+                              "hospital_id":hospital_id,
+                              "start":start,
+                              "end":end
+                          }).fetchall()
+    trend_data=[
+        {
+            "date":row[0],
+            "revenue":float(row[1] or 0)
+        }
+        for row in trend
+    ]
+    digital_cash=db.execute(text("""
+                                 SELECT
+                                 CASE
+                                 WHEN payment_method='Cash' THEN 'Cash'
+                                 ELSE 'Digital'
+                                 END AS category,
+                                 SUM(total_amount) AS amount
+                                 FROM mv_payment_analytics
+                                 WHERE hospital_id=:hospital_id
+                                 AND date >=:start AND date < :end
+                                 GROUP BY category
+                                 """),{
+                                    "hospital_id":hospital_id,
+                                    "start":start,
+                                    "end":end
+                                 }).fetchall()
+    digital_cash_data=[
+        {
+            "category": row[0],
+            "amount": float(row[1] or 0)
+        }
+        for row in digital_cash
+    ]
+    insurance=db.execute(text("""
+                              SELECT
+                              SUM(total_amount) FILTER (WHERE
+                              payment_method='Insurance') AS
+                              insurance_amount,
+                              SUM(total_amount) AS total_amount
+                              FROM mv_payment_analytics
+                              WHERE hospital_id=:hospital_id
+                              AND date >=:start AND date < :end
+                              """),{
+                                  "hospital_id":hospital_id,
+                                  "start":start,
+                                  "end":end
+                              }).fetchone()
+    insurance_amount=float(insurance[0] or 0)
+    total_amount=float(insurance[1] or 0)
+    insurance_dependency=round((insurance_amount/total_amount)*100,2) if total_amount else 0
+    return{
+        "distribution":pie,
+        "trend":trend_data,
+        "digital_vs_cash":digital_cash_data,
+        "insurance_dependency":insurance_dependency
+    }

@@ -16,7 +16,7 @@ def create_payment(db:Session,data:PaymentCreate,bill_id:str,current_user:User):
         raise ValueError(f"You are supposed to pay {current_balance}")
     if data.amount<current_balance:
         raise ValueError(f"You are supposed to pay {current_balance}")
-    payment=Payment(bill_id=bill.bill_id,remaining=current_balance-data.amount,amount=data.amount,payment_method=data.payment_method,reference_number=data.reference_number,received_by=current_user.user_id)
+    payment=Payment(hospital_id=current_user.hospital_id,bill_id=bill.bill_id,remaining=current_balance-data.amount,amount=data.amount,payment_method=data.payment_method,reference_number=data.reference_number,received_by=current_user.user_id)
     db.add(payment)
     bill.amount_paid+=data.amount
     if bill.amount_paid>=bill.total_amount:
