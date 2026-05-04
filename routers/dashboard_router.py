@@ -455,7 +455,7 @@ def generate_monthly_report(year:int,month:int,db:Session=Depends(get_db),curren
                              SELECT s.name,bi.total_price AS revenue
                              FROM bill_items bi
                              JOIN services s ON s.service_id=bi.service_id
-                             WHERE bi.hospital_id=:hospital_id)
+                             WHERE s.hospital_id=:hospital_id)
                              sub
                              GROUP BY name
                              ORDER BY SUM(revenue) DESC
