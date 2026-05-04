@@ -65,11 +65,12 @@ class KPIEventManager:
         if views_to_refresh:
             self.refresh_views(list(views_to_refresh))
     def refresh_views(self,views):
+        db=self.session_factory()
         try:
             with self.db.begin():
                 for view in views:
                     try:
-                        self.db.execute(f"REFRESH MATERIALIZED VIEW CONCURRENTLY {view}")
+                        db.execute(f"REFRESH MATERIALIZED VIEW CONCURRENTLY {view}")
                         print(f"[REFRESHED] {view}")
                     except Exception as e:
                         print(f"[ERROR] {view} -> {e}")
