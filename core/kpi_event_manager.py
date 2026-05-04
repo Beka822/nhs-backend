@@ -1,7 +1,7 @@
 import time
 import threading
 from collections import defaultdict
-from sqlalchemy.orm import Session
+from sqlalchemy import text
 class KPIEventManager:
     def __init__(self,session_factory):
         self.session_factory=session_factory
@@ -70,7 +70,7 @@ class KPIEventManager:
             with db.begin():
                 for view in views:
                     try:
-                        db.execute(f"REFRESH MATERIALIZED VIEW CONCURRENTLY {view}")
+                        db.execute(text(f"REFRESH MATERIALIZED VIEW CONCURRENTLY {view}"))
                         print(f"[REFRESHED] {view}")
                     except Exception as e:
                         print(f"[ERROR] {view} -> {e}")
