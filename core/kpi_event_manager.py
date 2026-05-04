@@ -3,8 +3,8 @@ import threading
 from collections import defaultdict
 from sqlalchemy.orm import Session
 class KPIEventManager:
-    def __init__(self,db:Session):
-        self.db=db
+    def __init__(self,session_factory):
+        self.session_factory=session_factory
         self.event_buffer=defaultdict(float)
         self.debounce_window=30
         self.lock=threading.Lock()
