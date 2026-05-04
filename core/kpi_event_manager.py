@@ -71,9 +71,11 @@ class KPIEventManager:
                 for view in views:
                     try:
                         db.execute(text(f"REFRESH MATERIALIZED VIEW CONCURRENTLY {view}"))
+                        db.commit()
                         print(f"[REFRESHED] {view}")
                     except Exception as e:
-                        print(f"[ERROR] {view} -> {e}")
+                        db.rollback()
+                        print(f"[ERROR] {view} -> {str(e)}")
         except Exception as e:
             print(f"[DB TRANSACTION ERROR] {e}")
         
