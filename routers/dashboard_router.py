@@ -509,13 +509,13 @@ def generate_monthly_report(year:int,month:int,db:Session=Depends(get_db),curren
         ws[f"B{row}"]=float(amount or 0)
         row +=1
     #create Pie Chart
-    pie=PieChart()
-    pie.title="Payment Distribution"
-    labels=Reference(ws,min_col=1,min_row=16,max_row=15 + len(payments))
-    data=Reference(ws,min_col=2,min_row=15,max_row=15 + len(payments))
-    pie.add_data(data,titles_from_data=True)
-    pie.set_categories(labels)
-    ws.add_chart(pie,"D8")
+    #pie=PieChart()
+    #pie.title="Payment Distribution"
+    #labels=Reference(ws,min_col=1,min_row=16,max_row=15 + len(payments))
+    #data=Reference(ws,min_col=2,min_row=15,max_row=15 + len(payments))
+    #pie.add_data(data,titles_from_data=True)
+    #pie.set_categories(labels)
+    #ws.add_chart(pie,"D8")
     #TOP SERVICES
     row +=1
     ws[f"A{row}"]="Top Services"
@@ -526,17 +526,17 @@ def generate_monthly_report(year:int,month:int,db:Session=Depends(get_db),curren
         ws[f"B{row}"]=float(revenue_val or 0)
         row += 1
      #bar chart
-    bar=BarChart()
-    bar.title="Top Services Revenue"
-    labels=Reference(ws,min_col=1,min_row=row - len(services),max_row=row -1)
-    data=Reference(ws,min_col=2,min_row=row - len(services) - 1,max_row=row - 1)
-    bar.add_data(data,titles_from_data=True)
-    bar.set_categories(labels)
-    ws.add_chart(bar, "D20")
+    #bar=BarChart()
+    #bar.title="Top Services Revenue"
+    #labels=Reference(ws,min_col=1,min_row=row - len(services),max_row=row -1)
+    #data=Reference(ws,min_col=2,min_row=row - len(services) - 1,max_row=row - 1)
+    #bar.add_data(data,titles_from_data=True)
+    #bar.set_categories(labels)
+    #ws.add_chart(bar, "D20")
     #CHARTS
-    ws["D5"]="Insurance Dependency"
-    ws["E5"]=f"{insurance_pct:.2f}%"
-    ws["D5"].font=Font(bold=True)
+    #ws["D5"]="Insurance Dependency"
+    #ws["E5"]=f"{insurance_pct:.2f}%"
+    #ws["D5"].font=Font(bold=True)
     #INSIGHTS
     ws["D2"]="Insights"
     ws["D2"].font=Font(bold=True)
@@ -629,7 +629,7 @@ def generate_pdf_report(year:int,month:int,db:Session=Depends(get_db),current_us
                               SELECT AVG(occupancy_rate)
                               FROM mv_ward_bor_trend
                               WHERE hospital_id=:hospital_id
-                              AND date >=:start AND < :end
+                              AND date >=:start AND date < :end
                               """),{
                                   "hospital_id":hospital_id,
                                   "start":start,
