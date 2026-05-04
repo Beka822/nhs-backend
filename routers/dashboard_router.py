@@ -1,4 +1,13 @@
 from fastapi import APIRouter,Depends,Query
+from fastapi.responses import StreamingResponse
+from io import BytesIO
+from openpyxl import Workbook
+from openpyxl.styles import Font
+from openpyxl.chart import PieChart,Reference,BarChart
+from reportlab.platypus import SimpleDocTemplate,Paragraph,Spacer,Table,TableStyle
+from reportlab.lib import colors
+from reportlab.lib.styles import getSampleStyleSheet
+from reportlab.lib.pagesizes import A4
 from datetime import datetime,timedelta
 from sqlalchemy.orm import Session
 from sqlalchemy import text
@@ -366,3 +375,396 @@ def get_payment_analytics(
         "digital_vs_cash":digital_cash_data,
         "insurance_dependency":insurance_dependency
     }
+@router.get("/monthly-excel")
+def generate_monthly_report(year:int,month:int,db:Session=Depends(get_db),current_user:User=Depends(get_user_object)):
+    hospital_id=current_user.hospital_id
+    hospital=db.execute(text("""
+                             SELECT hospital_name
+                             FROM hospitals
+                             WHERE hospital_id=:hospital_id
+                             """),{
+                                 "hospital_id":hospital_id
+                             }).fetchone()
+    hospital_name=hospital[0] if hospital else "Hospital"
+    start=datetime(year,month,1)
+    end=(start + timedelta(days=32)).replace(day=1)
+    #DATA FETCH
+    #visits
+    total_visits=db.execute(text("""
+                                 SELECT COUNT(*) FROM visits
+                                 WHERE hospital_id=:hospital_id
+                                 AND created_at >= :start AND created_at <:end
+                                 """),{"hospital_id":hospital_id,
+                                 "start":start,
+                                 "end":end}).scalar()
+    #Admissions/Discharges
+    admission_data=db.execute(text("""
+                                   SELECT
+                                   COUNT(*) FILTER (WHERE
+                                   admitted_at>=:start AND admitted_at < :end) AS admissions,
+                                   COUNT(*) FILTER (WHERE
+                                   discharge_at >=:start AND discharge_at <:end) AS discharges
+                                   FROM admissions
+                                   WHERE hospital_id=:hospital_id
+                                   """),{
+                                       "hospital_id":hospital_id,
+                                       "start":start,
+                                       "end":end
+                                   }).fetchone()
+    admissions=admission_data[0] or 0
+    discharges=admission_data[1] or 0
+    net_flow=admissions - discharges
+    #Revenue
+    revenue=db.execute(text("""
+                            SELECT SUM(amount) FROM payments
+                            WHERE hospital_id=:hospital_id
+                            AND received_at >=:start AND
+                            received_at <:end
+                            """),{
+                                "hospital_id":hospital_id,
+                                "start":start,
+                                "end":end
+                            }).scalar() or 0
+    #Payment breakdown
+    payments=db.execute(text("""
+                             SELECT payment_method,SUM(amount)
+                             FROM payments
+                             WHERE hospital_id=:hospital_id
+                             AND received_at >=:start AND received_at <:end
+                             GROUP BY payment_method
+                             """),{
+                                 "hospital_id":hospital_id,
+                                 "start":start,
+                                 "end":end
+                             }).fetchall()
+    total_payments=sum([p[1] or 0 for p in payments])
+    insurance_amount=next((p[1] for p in payments if p[0]=="Insurance"),0)
+    insurance_pct=(insurance_amount/total_payments*100) if total_payments else 0
+    #create Pie Chart
+    pie=PieChart()
+    pie.title="Payment Distribution"
+    labels=Reference(ws,min_col=1,min_row=16,max_row=15 + len(payments))
+    data=Reference(ws,min_col=2,min_row=15,max_row=15 + len(payments))
+    pie.add_data(data,titles_from_data=True)
+    pie.set_categories(labels)
+    ws.add_chart(pie,"D8")
+    #Top services
+    services=db.execute(text("""
+                             SELECT name, SUM(revenue)
+                             FROM (
+                             SELECT s.name,bi.total_price AS revenue
+                             FROM bill_items bi
+                             JOIN services s ON s.service_id=bi.service_id
+                             WHERE bi.hospital_id=:hospital_id)
+                             sub
+                             GROUP BY name
+                             ORDER BY SUM(revenue) DESC
+                             LIMIT 5
+                             """),{
+                                 "hospital_id":hospital_id
+                             }).fetchall()
+    #bar chart
+    bar=BarChart()
+    bar.title="Top Services Revenue"
+    labels=Reference(ws,min_col=1,min_row=row - len(services),max_row=row -1)
+    data=Reference(ws,min_col=2,min_row=row - len(services) - 1,max_row=row - 1)
+    bar.add_data(data,titles_from_data=True)
+    bar.set_categories(labels)
+    ws.add_chart(bar, "D20")
+    #CREATE EXCEL
+    wb=Workbook()
+    ws=wb.active
+    ws.title="Monthly Report"
+    #Title
+    ws["A1"]=hospital_name.upper()
+    ws["A1"].font=Font(size=16,bold=True)
+    ws["A2"]="MONTHLY HOSPITAL REPORT"
+    ws["A3"]= f"Period: {year}-{month:02d}"
+    #PATIENT SECTION
+    ws["A4"]="Patient Statistics"
+    ws["A4"].font=Font(bold=True)
+    ws["A5"]="Total Visits"
+    ws["B5"]=total_visits
+    #ADMISSION SECTION
+    ws["A7"]="Admissions"
+    ws["A7"].font=Font(bold=True)
+    ws["A8"]="Admissions"
+    ws["B8"]=admissions
+    ws["A9"]="Discharges"
+    ws["B9"]=discharges
+    ws["A10"]="Net Flow"
+    ws["B10"]=net_flow
+    #FINANCIAL SECTION
+    ws["A12"]="Financial Summary"
+    ws["A12"].font=Font(bold=True)
+    ws["A13"]="Total Revenue"
+    ws["B13"]=float(revenue)
+    #Payment breakdown
+    row=15
+    ws[f"A{row}"]="Payment Breakdown"
+    ws[f"A{row}"].font=Font(bold=True)
+    row += 1
+    for method,amount in payments:
+        ws[f"A{row}"]=method
+        ws[f"B{row}"]=float(amount or 0)
+        row +=1
+    #TOP SERVICES
+    row +=1
+    ws[f"A{row}"]="Top Services"
+    ws[f"A{row}"].font=Font(bold=True)
+    row +=1
+    for name,revenue_val in services:
+        ws[f"A{row}"]=name
+        ws[f"B{row}"]=float(revenue_val or 0)
+        row += 1
+    #CHARTS
+    ws["D5"]="Insurance Dependency"
+    ws["E5"]=f"{insurance_pct:.2f}%"
+    ws["D5"].font=Font(bold=True)
+    #INSIGHTS
+    ws["D2"]="Insights"
+    ws["D2"].font=Font(bold=True)
+    insight="Balanced revenue streams"
+    if insurance_pct > 70:
+        insight="High reliance on insurance payments"
+    elif insurance_pct < 20:
+        insight="Low insurance utilization"
+    elif any(p[0]=="Cash" and p[1]> total_payments* 0.5 for p in payments):
+        insight="High cash usage - potential fraud risk"
+    ws["D3"]=insight
+    #AUTO WIDTH
+    for col in ["A", "B"]:
+        ws.column_dimensions[col].width=25
+    #RETURN FILE
+    stream=BytesIO()
+    wb.save(stream)
+    stream.seek(0)
+    return StreamingResponse(
+        stream,
+        media_type="application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",
+        headers={
+            "Content-Disposition":
+            f"attachment; filename=report_{year}_{month}.xlsx"
+        }
+    )
+@router.get("/monthly-pdf")
+def generate_pdf_report(year:int,month:int,db:Session=Depends(get_db),current_user:User=Depends(get_user_object)):
+    hospital_id=current_user.hospital_id
+    hospital=db.execute(text("""
+                             SELECT hospital_name FROM hospitals
+                             WHERE hospital_id=:hospital_id
+                             """),{
+                                 "hospital_id":hospital_id
+                             }).fetchone()
+    hospital_name=hospital[0] if hospital else "Hospital"
+    start=datetime(year,month,1)
+    end=(start + timedelta(days=32)).replace(day=1)
+    visits=db.execute(text("""
+                           SELECT COUNT(*) FROM visits
+                           WHERE hospital_id=:hospital_id
+                           AND created_at >=:start AND created_at < :end
+                           """),{
+                               "hospital_id":hospital_id,
+                               "start":start,
+                               "end":end
+                           }).scalar()
+    revenue=db.execute(text("""
+                            SELECT SUM(amount) FROM payments 
+                            WHERE hospital_id=:hospital_id
+                            AND received_at >=:start AND received_at < :end
+                            """),{
+                                "hospital_id":hospital_id,
+                                "start":start,
+                                "end":end
+                            }).scalar() or 0
+    payments=db.execute(text("""
+                             SELECT payment_method,SUM(amount)
+                             FROM payments
+                             WHERE hospital_id=:hospital_id
+                             AND received_at >=:start AND received_at <:end
+                             GROUP BY payment_method
+                             """),{
+                                 "hospital_id":hospital_id,
+                                 "start":start,
+                                 "end":end
+                             }).fetchall()
+    total_payments=sum([p[1] or 0 for p in payments])
+    insurance_amount=next((p[1] for p in payments if p[0]=="Insurance"),0)
+    insurance_pct=(insurance_amount/total_payments*100) if total_payments else 0
+    #Admissions and discharges
+    admission_data=db.execute(text("""
+                                   SELECT
+                                   COUNT(*) FILTER (WHERE
+                                   admitted_at>=:start AND admitted_at < :end) AS admissions,
+                                   COUNT(*) FILTER (WHERE
+                                   discharge_at >=:start AND discharge_at <:end) AS discharges
+                                   FROM admissions
+                                   WHERE hospital_id=:hospital_id
+                                   """),{
+                                       "hospital_id":hospital_id,
+                                       "start":start,
+                                       "end":end
+                                   }).fetchone()
+    admissions=admission_data[0] or 0
+    discharges=admission_data[1] or 0
+    net_flow=admissions - discharges
+    #OCCUPANCY
+    occupancy=db.execute(text("""
+                              SELECT AVG(occupancy_rate)
+                              FROM mv_ward_bor_trend
+                              WHERE hospital_id=:hospital_id
+                              AND date >=:start AND < :end
+                              """),{
+                                  "hospital_id":hospital_id,
+                                  "start":start,
+                                  "end":end
+                              }).scalar() or 0
+    #LOS
+    los=db.execute(text("""
+                        SELECT
+                        AVG((discharge_at::date - admitted_at::date)) AS avg_los,
+                        PERCENTILE_CONT(0.5) WITHIN GROUP(
+                        ORDER BY (discharge_at::date - admitted_at::date)) AS median_los
+                        FROM admissions
+                        WHERE hospital_id=:hospital_id
+                        AND discharge_at IS NOT NULL
+                        AND discharge_at >= :start AND discharge_at<:end
+                        """),{
+                            "hospital_id":hospital_id,
+                            "start":start,
+                            "end":end
+                        }).fetchone()
+    avg_los=float(los[0] or 0)
+    median_los=float(los[1] or 0)
+    #DIAGNOSES
+    diagnoses=db.execute(text("""
+                              SELECT diagnosis,COUNT(*) AS count
+                              FROM visits
+                              WHERE hospital_id=:hospital_id
+                              AND created_at >=:start AND created_at <:end
+                              GROUP BY diagnosis
+                              ORDER BY count DESC
+                              LIMIT 5
+                              """),{
+                                  "hospital_id":hospital_id,
+                                  "start":start,
+                                  "end":end
+                              }).fetchall()
+    #PDF
+    buffer=BytesIO()
+    doc=SimpleDocTemplate(buffer,pagesize=A4,rightMargin=30,leftMargin=30,topMargin=30,bottomMargin=30)
+    styles=getSampleStyleSheet()
+    elements=[]
+    elements.append(Paragraph("<b>MINISTRY OF HEALTH - KENYA</b>", styles["Normal"]))
+    elements.append(Spacer(1,6))
+    elements.append(Paragraph(f"<b>{hospital_name}</b>",styles["Title"]))
+    elements.append(Spacer(1,6))
+    elements.append(Paragraph(f"Monthly Report ({year}-{month:02d})",styles["Heading2"]))
+    elements.append(Spacer(1, 12))
+    table_data=[
+        ["Indicator", "Value"],
+        ["Total Visits",visits],
+    ]
+    table=Table(table_data, colWidths=[250, 150])
+    table.setStyle(TableStyle([
+        ("BACKGROUND", (0,0), (-1,0), colors.grey),
+        ("TEXTCOLOR",(0,0),(-1,0), colors.white),
+        ("GRID",(0,0), (-1,-1), 1, colors.black),
+    ]))
+    elements.append(table)
+    elements.append(Spacer(1,12))
+    elements.append(Paragraph("<b>MOH 711 - INPATIENT SUMMARY</b>",styles["Heading3"]))
+    elements.append(Spacer(1,6))
+    ipd_table=[
+        ["Indicator","Value"],
+        ["Admissions",admissions,0],
+        ["Discharges",discharges,0],
+        ["Net Flow",net_flow,0],
+    ]
+    table=Table(ipd_table,colWidths=[250,150])
+    table.setStyle(TableStyle([
+        ("BACKGROUND",(0,0),(-1,0),colors.grey),
+        ("TEXTCOLOR",(0,0),(-1,0),colors.white),
+        ("GRID",(0,0),(-1,-1),1,colors.black),
+    ]))
+    elements.append(table)
+    elements.append(Spacer(1,12))
+    elements.append(Paragraph("<b>BED UTILIZATION</b>",styles["Heading3"]))
+    elements.append(Spacer(1,6))
+    bed_table=[
+        ["Metric", "Value"],
+        ["Average Occupancy Rate",occupancy],
+    ]
+    table=Table(bed_table,colWidths=[250,150])
+    table.setStyle([
+        ("GRID",(0,0),(-1,-1),1, colors.black),
+    ])
+    elements.append(table)
+    elements.append(Spacer(1,12))
+    elements.append(Paragraph("<b>LENGTH OF STAY</b>",styles["Heading3"]))
+    elements.append(Spacer(1,6))
+    los_table=[
+        ["Metric", "Value"],
+        ["Average LOS",avg_los],
+        ["Median LOS", median_los],
+    ]
+    table=Table(los_table,colWidths=[250,150])
+    table.setStyle([
+        ("GRID",(0,0),(-1,-1),1,colors.black),
+    ])
+    elements.append(table)
+    elements.append(Spacer(1,12))
+    elements.append(Paragraph("<b>TOP DIAGNOSES</b>",styles["Heading3"]))
+    elements.append(Spacer(1,6))
+    diag_table=[["Diagnosis","Cases"]]
+    for d in diagnoses:
+        diag_table.append([d[0],d[1]])
+    table=Table(diag_table,colWidths=[250,150])
+    table.setStyle([
+        ("BACKGROUND",(0,0),(-1,0),colors.grey),
+        ("TEXTCOLOR",(0,0),(-1,0),colors.white),
+        ("GRID",(0,0),(-1,-1),1,colors.black),
+    ])
+    elements.append(table)
+    elements.append(Spacer(1,12))
+    elements.append(Paragraph("<b>FINANCIAL SUMMARY</b>",styles["Heading3"]))
+    elements.append(Spacer(1,6))
+    fin_table=[
+        ["Metric", "Value"],
+        ["Total_Revenue",revenue],
+        ["Insurance Dependency",insurance_pct],
+    ]
+    table=Table(fin_table,colWidths=[250,150])
+    table.setStyle(TableStyle([
+        ("BACKGROUND",(0,0),(-1,0),colors.grey),
+        ("TEXTCOLOR",(0,0),(-1,0),colors.white),
+        ("GRID",(0,0),(-1,-1),1,colors.black),
+    ]))
+    elements.append(table)
+    elements.append(Spacer(1,20))
+    insight="Operations stable"
+    if occupancy > 85:
+        insight="High bed occupancy - capacity strain"
+    elif avg_los > 7:
+        insight="Long hospital stays - possible inefficiency"
+    elif len(diagnoses)>0 and diagnoses[0][1]>50:
+        insight=f"High prevalence of {diagnoses[0][0]}"
+    elements.append(Paragraph(f"<b>INSIGHTS:</b>{insight}",styles["Normal"]))
+    elements.append(Spacer(1,30))
+    elements.append(Paragraph(f"Generated on: {datetime.now().strftime('%Y-%m-%d %H:%M')}",
+                              styles["Normal"]))
+    elements.append(Spacer(1,20))
+    elements.append(Paragraph("Prepared by:________________________",
+                              styles["Normal"]))
+    elements.append(Paragraph("Signature:______________________",
+                              styles["Normal"]))
+    doc.build(elements)
+    buffer.seek(0)
+    return StreamingResponse(
+        buffer,
+        media_type="application/pdf",
+        headers={
+            "Content-Disposition":
+            f"attachment; filename=report_{year}_{month}.pdf"
+        }
+    )
