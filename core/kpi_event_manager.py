@@ -60,7 +60,7 @@ class KPIEventManager:
             for event in ready_events:
                 views=self.event_map.get(event, [])
                 for v in views:
-                    views_to_refresh(v)
+                    views_to_refresh.add(v)
                 del self.event_buffer[event]
         if views_to_refresh:
             self.refresh_views(list(views_to_refresh))
