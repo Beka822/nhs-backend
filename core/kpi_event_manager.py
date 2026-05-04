@@ -76,5 +76,4 @@ class KPIEventManager:
                         print(f"[ERROR] {view} -> {e}")
         except Exception as e:
             print(f"[DB TRANSACTION ERROR] {e}")
-        finally:
-            db.close()
+        
