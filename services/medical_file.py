@@ -7,6 +7,7 @@ from io import BytesIO
 import re
 from sqlalchemy.orm import Session
 from models.patient import Patient
+from models.visit import Visit
 from models.medical_file import MedicalFile
 from models.audit_log import AuditLog
 from fastapi import UploadFile,HTTPException
@@ -59,7 +60,7 @@ def download_medical_file(db:Session,patient_id:str,file_id:str,current_user:Use
     decrypted=fernet.decrypt(file_obj.read())
     return StreamingResponse(BytesIO(decrypted),media_type=medical_file.file_mime,headers={"Content-Disposition":f"attachment;filename={medical_file.file_name}"})
 def get_medical_file_by_patient(db:Session,patient_id:str,current_user:User):
-    patient=db.query(Patient).filter(Patient.patient_id==patient_id).first()
+    patient=db.query(Patient).filter(Patient.patient_id==Visit.patient_id).first()
     if not patient:
         raise ValueError("Patient not found")
     files=(db.query(MedicalFile.file_id,MedicalFile.file_name).filter(MedicalFile.hospital_id==current_user.hospital_id,MedicalFile.patient_id==patient_id).all())
