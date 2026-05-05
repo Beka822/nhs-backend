@@ -1,6 +1,7 @@
 from models.bill import Bill
 from models.payment import Payment
 from sqlalchemy.orm import Session
+from core.kpi_instance import kpi
 from models.user import User
 from schemas.payment import PaymentCreate
 from datetime import datetime
@@ -26,7 +27,7 @@ def create_payment(db:Session,data:PaymentCreate,bill_id:str,current_user:User):
         bill.paid_at=datetime.utcnow()
     db.add(AuditLog(action="CREATE_PAYMENT",entity="Payment",entity_id=payment.payment_id))
     db.commit()
-    
+    kpi.emit_event("bill_paid")
     db.refresh(payment)
     return payment
 def get_payments(db:Session,bill_id:str,current_user:User):

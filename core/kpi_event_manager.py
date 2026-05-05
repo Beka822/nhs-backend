@@ -30,6 +30,9 @@ class KPIEventManager:
             "bed_transfer":[
                 "mv_transfer_reason_analysis",
                 "mv_ward_bor_trend"
+            ],
+            "bill_paid":[
+                "mv_payment_analytics"
             ]
         }
         self.worker_started=False
