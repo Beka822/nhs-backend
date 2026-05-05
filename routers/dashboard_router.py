@@ -90,6 +90,8 @@ def get_top_services(period:str=Query("month"),db:Session=Depends(get_db),curren
     JOIN services s ON s.service_id=bi.service_id
     JOIN bills b ON bi.bill_id=b.bill_id
     WHERE b.hospital_id=:hospital_id
+    AND b.bill_id IN (
+    SELECT DISTINCT bill_id FROM payments)
     """
     params={"hospital_id":hospital_id}
     if start and end:
@@ -332,7 +334,7 @@ def get_payment_analytics(
     digital_cash=db.execute(text("""
                                  SELECT
                                  CASE
-                                 WHEN payment_method='Cash' THEN 'Cash'
+                                 WHEN LOWER(TRIM(payment_method))='cash' THEN 'Cash'
                                  ELSE 'Digital'
                                  END AS category,
                                  SUM(total_amount) AS amount
