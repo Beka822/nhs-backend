@@ -362,7 +362,7 @@ def get_payment_analytics(
     insurance=db.execute(text("""
                               SELECT
                               SUM(total_amount) FILTER (WHERE
-                              WHEN LOWER(TRIM(payment_method))='insurance' THEN 'Insurance') AS
+                              LOWER(TRIM(payment_method))='insurance') AS
                               insurance_amount,
                               SUM(total_amount) AS total_amount
                               FROM mv_payment_analytics
