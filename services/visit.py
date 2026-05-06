@@ -20,13 +20,13 @@ def create_visit(db:Session,data,current_user:User):
         visit=Visit(patient_id=patient.patient_id,symptoms=data.symptoms,diagnosis=data.diagnosis,treatment=data.treatment,notes=data.notes,hospital_id=current_user.hospital_id,created_by=current_user.user_id,payment_status="PENDING")
         db.add(visit)
         db.flush()
-        pay=db.query(Pay).filter(Pay.visit_id==visit.visit_id,Pay.status=="SUCCESS").first()
-        if pay:
-            raise Exception("Visit already paid")
-        try:
-            stk_response=initiate_stk_push(Phone_number=pay.phone_number,amount=VISIT_FEE,reference=f"visit_{visit.visit_id}")
-        except Exception:
-            stk_response={"message": "STK failed"}
+        #pay=db.query(Pay).filter(Pay.visit_id==visit.visit_id,Pay.status=="SUCCESS").first()
+        #if pay:
+         #   raise Exception("Visit already paid")
+        #try:
+         #   stk_response=initiate_stk_push(Phone_number=pay.phone_number,amount=VISIT_FEE,reference=f"visit_{visit.visit_id}")
+        #except Exception:
+        #    stk_response={"message": "STK failed"}
         audit=AuditLog(action="CREATE_VISIT_PENDING",entity="Visit",entity_id=visit.visit_id)
         db.add(audit)
         db.commit()
@@ -35,7 +35,6 @@ def create_visit(db:Session,data,current_user:User):
         return {
             "status": "PENDING",
             "visit": visit,
-            "stk": stk_response
         }
     except Exception as e:
         db.rollback
