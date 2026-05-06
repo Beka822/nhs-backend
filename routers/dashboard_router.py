@@ -295,7 +295,7 @@ def get_payment_analytics(
                                  WHEN LOWER (TRIM(payment_method))='cash' THEN 'Cash'
                                  WHEN LOWER (TRIM(payment_method))='insurance' THEN 'Insurance'
                                  ELSE 'Other'
-                                 END AS method
+                                 END AS method,
                                  SUM(total_amount) AS amount
                                  FROM mv_payment_analytics
                                  WHERE hospital_id=:hospital_id
