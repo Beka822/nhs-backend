@@ -290,12 +290,17 @@ def get_payment_analytics(
         end=(start + timedelta(days=32)).replace(day=1)
     distribution=db.execute(text("""
                                  SELECT
-                                 payment_method,
+                                 CASE
+                                 WHEN REPLACE(LOWER(TRIM(payment_method)),'_','')='mpesa' THEN 'M-Pesa'
+                                 WHEN LOWER (TRIM(payment_method))='cash' THEN 'Cash'
+                                 WHEN LOWER (TRIM(payment_method))='insurance' THEN 'Insurance'
+                                 ELSE 'Other'
+                                 END AS method
                                  SUM(total_amount) AS amount
                                  FROM mv_payment_analytics
                                  WHERE hospital_id=:hospital_id
                                  AND date >=:start AND date <:end
-                                 GROUP BY payment_method
+                                 GROUP BY method
                                  """),{
                                      "hospital_id":hospital_id,
                                      "start":start,
@@ -357,7 +362,7 @@ def get_payment_analytics(
     insurance=db.execute(text("""
                               SELECT
                               SUM(total_amount) FILTER (WHERE
-                              payment_method='Insurance') AS
+                              WHEN LOWER(TRIM(payment_method))='insurance' THEN 'Insurance') AS
                               insurance_amount,
                               SUM(total_amount) AS total_amount
                               FROM mv_payment_analytics
