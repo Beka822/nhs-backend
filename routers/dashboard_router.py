@@ -13,6 +13,7 @@ from sqlalchemy.orm import Session
 from sqlalchemy import text
 from core.db import get_db
 from models.user import User
+from models.pharmacy import Drug
 from core.dependencies import get_user_object
 router=APIRouter(prefix="/dashboard",tags=["Dashboard"])
 @router.get("/patients")
@@ -791,3 +792,44 @@ def generate_pdf_report(year:int,month:int,db:Session=Depends(get_db),current_us
             f"attachment; filename=report_{year}_{month}.pdf"
         }
     )
+def pharmacy_sales_summary(db:Session,current_user:User):
+    query=text("""SELECT
+    COUNT(*) AS total_sales,
+               COALESCE(SUM(total_price),0)AS revenue
+               FROM pharmacy_sales
+               WHERE hospital_id=:hospital_id
+               AND sold_at::date=CURRENT_DATE
+               """)
+    data=db.execute(query,{
+                "hospital_id":current_user.hospital_id
+               }).fetchone()
+    return {
+        "total_sales":data[0],
+        "revenue":float(data[1])
+    }
+def top_selling_drugs(db:Session,current_user:User):
+    query=text("""SELECT
+               d.name,
+               SUM(ps.quantity) AS quantity_sold,
+               SUM(ps.total_prices) AS revenue
+               FROM pharmacy_sales ps
+               JOIN drugs d
+               ON d.drug_id=ps.drug_id
+               WHERE ps.hospital_id=:hospital_id
+               GROUP BY d.name
+               ORDER BY quantity_sold DESC
+               LIMIT 5
+               """)
+    data=db.execute(query,{
+        "hospital_id":current_user.hospital_id
+    }).fetchall()
+    return [
+        {
+            "name":row[0],
+            "quantity_sold":row[1],
+            "revenue":float(row[2] or 0)
+        }
+        for row in data
+    ]
+def low_stock_drugs(db:Session,current_user:User):
+    return db.query(Drug).filter(Drug.hospital_id==current_user.hospital_id,Drug.quantity_in_stock <=Drug.reorder_level).all()
