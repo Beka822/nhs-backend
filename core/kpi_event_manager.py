@@ -22,7 +22,7 @@ class KPIEventManager:
                 "mv_ward_bor_trend"
             ],
             "visit_created":[
-                "mv_patients_visits"
+                "mv_patient_visits"
             ],
             "icu_updated":[
                 "mv_icu_occupancy"
