@@ -3,7 +3,7 @@ from sqlalchemy.orm import Session
 from models.user import User
 from core.db import get_db
 from core.dependencies import get_user_object
-from services.pharmacy import dispense_drug,pharmacy_sales_summary,top_selling_drugs,low_stock_drugs
+from services.pharmacy import dispense_drug,pharmacy_sales_summary,top_selling_drugs,low_stock_drugs,pharmcy_profit_summary,pharmacy_payment_distribution,pharmacy_profit_trend,pharmacy_revenue_trend
 from schemas.pharmacysale import PharmacySaleCreate
 router=APIRouter(prefix="/pharmacy-sales",tags=["Pharmacy Sales"])
 @router.post("/")
@@ -18,3 +18,12 @@ def top_selling(db:Session=Depends(get_db),current_user:User=Depends(get_user_ob
 @router.get("/low-stock")
 def low_stock(db:Session=Depends(get_db),current_user:User=Depends(get_user_object)):
     return low_stock_drugs(db,current_user)
+@router.get("/payment-distribution")
+def payment_distribution(period:str="month",db:Session=Depends(get_db),current_user:User=Depends(get_user_object)):
+    return pharmacy_payment_distribution(db,current_user,period)
+@router.get("/revenue-trend")
+def revenue_trend(period:str="month",db:Session=Depends(get_db),current_user:User=Depends(get_user_object)):
+    return pharmacy_revenue_trend(db,current_user,period)
+@router.get("/profit-trend")
+def profit_trend(period:str="month",db:Session=Depends(get_db),current_user:User=Depends(get_user_object)):
+    return pharmacy_profit_trend(db,current_user,period)
