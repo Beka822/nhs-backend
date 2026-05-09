@@ -140,7 +140,7 @@ def pharmacy_revenue_trend(db:Session,current_user:User,period:str):
                sold_at::date AS date,
                SUM(total_price) AS revenue
                FROM pharmacy_sales
-               WHERE hospital=:hospital_id
+               WHERE hospital_id=:hospital_id
                AND sold_at BETWEEN :start AND :end
                GROUP BY sold_at::date
                ORDER BY sold_at::date
