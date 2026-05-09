@@ -29,4 +29,4 @@ def get_period_range(period:str):
         )
     else:
         start=now.replace(day=1)
-    return start.now
+    return start,now
