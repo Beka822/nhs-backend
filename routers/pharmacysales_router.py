@@ -10,8 +10,8 @@ router=APIRouter(prefix="/pharmacy-sales",tags=["Pharmacy Sales"])
 def dispense(data:PharmacySaleCreate,db:Session=Depends(get_db),current_user:User=Depends(get_user_object)):
     return dispense_drug(db,current_user,data)
 @router.get("/summary")
-def summary(db:Session=Depends(get_db),current_user:User=Depends(get_user_object)):
-    return pharmacy_sales_summary(db,current_user)
+def summary(period:str="month",db:Session=Depends(get_db),current_user:User=Depends(get_user_object)):
+    return pharmacy_sales_summary(db,current_user,period)
 @router.get("/top-selling")
 def top_selling(db:Session=Depends(get_db),current_user:User=Depends(get_user_object)):
     return top_selling_drugs(db,current_user)
