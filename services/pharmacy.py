@@ -5,37 +5,7 @@ from models.pharmacysale import PharmacySale
 from models.user import User
 from datetime import datetime,timedelta
 from schemas.pharmacy import DrugCreate,DrugUpdate
-def get_period_range(period:str):
-    now=datetime.utcnow()
-    if period=="today":
-        start=now.replace(
-            hour=0,
-            minute=0,
-            second=0,
-            microsecond=0
-        )
-    elif period=="week":
-        start=now-timedelta(days=7)
-    elif period=="month":
-        start=now.replace(
-            day=1,
-            hour=0,
-            minute=0,
-            second=0,
-            microsecond=0
-        )
-    elif period=="year":
-        start=now.replace(
-            month=1,
-            day=1,
-            hour=0,
-            minute=0,
-            second=0,
-            microsecond=0
-        )
-    else:
-        start=now.replace(day=1)
-    return start.now
+from utils.date_range import get_period_range
 def create_drug(db:Session,current_user:User,data):
     drug=Drug(hospital_id=current_user.hospital_id,name=data.name,category=data.category,unit=data.unit,buying_price=data.buying_price,selling_price=data.selling_price,quantity_in_stock=data.quantity_in_stock,reorder_level=data.reorder_level)
     db.add(drug)
