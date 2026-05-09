@@ -75,7 +75,7 @@ def top_selling_drugs(db:Session,current_user:User):
     query=text("""SELECT
                d.name,
                SUM(ps.quantity) AS quantity_sold,
-               SUM(ps.total_prices) AS revenue
+               SUM(ps.total_price) AS revenue
                FROM pharmacy_sales ps
                JOIN drugs d
                ON d.drug_id=ps.drug_id
