@@ -69,7 +69,8 @@ def pharmacy_sales_summary(db:Session,current_user:User,period:str):
         "total_sales":data[0],
         "revenue":float(data[1] or 0),
         "inventory_value":float(inventory[0] or 0),
-        "profit":profit["profit"]
+        "profit":profit["profit"],
+        "profit_margin":round((profit["profit"]/float(data[1] or 1))*100,2)
     }
 def top_selling_drugs(db:Session,current_user:User):
     query=text("""SELECT
@@ -205,6 +206,84 @@ def pharmacy_profit_trend(db:Session,current_user:User,period:str):
         {
             "date":str(row[0]),
             "profit":float(row[1] or 0)
+        }
+        for row in data
+    ]
+def near_expiry_drugs(db:Session,current_user:User):
+    query=text("""
+               SELECT
+               name,quantity_in_stock,
+               expiry_date,
+               expiry_date - CURRENT_DATE
+               AS days_remaining
+               FROM drugs
+               WHERE hospital_id=:hospital_id
+               AND quantity_in_stock > 0
+               AND expiry_date IS NOT NULL
+               AND expiry_date <= CURRENT_DATE + INTERVAL '30 days'
+               ORDER BY expiry_date ASC
+               """)
+    data=db.execute(
+        query,{
+            "hospital_id":current_user.hospital_id
+        }
+    ).fetchall()
+    return [
+        {
+            "name":row[0],
+            "quantity_in_stock":row[1],
+            "expiry_date":str(row[2]),
+            "days_remaining":row[3].days
+        }
+        for row in data
+    ]
+def expired_drugs(db:Session,current_user:User):
+    query=text("""
+               SELECT
+               name,quantity_in_stock,
+               expiry_date
+               FROM drugs
+               WHERE hospital_id=:hospital_id
+               AND quantity_in_stock > 0
+               AND expiry_date < CURRENT_DATE
+               ORDER BY expiry_date
+               """)
+    data=db.execute(query,{
+        "hospital_id":current_user.hospital_id
+    }).fetchall()
+    return [
+        {
+            "name":row[0],
+            "quantity_in_stock":row[1],
+            "expiry_date":str(row[2])
+        }
+        for row in data
+    ]
+def expiring_inventory_value(db:Session,current_user:User):
+    query=text("""
+               SELECT
+               name,
+               quantity_in_stock,
+               expiry_date,
+               (
+               quantity_in_stock * buying_price) AS inventory_value
+               FROM drugs
+               WHERE hospital_id=:hospital_id
+               AND quantity_in_stock > 0
+               AND expiry_date <= CURRENT_DATE + INTERVAL '60 days'
+               ORDER BY inventory_value DESC
+               LIMIT 10
+               """)
+    data=db.execute(query,
+                    {
+                        "hospital_id":current_user.hospital_id
+                    }).fetchall()
+    return [
+        {
+            "name":row[0],
+            "quantity_in_stock":row[1],
+            "expiry_date":str(row[2]),
+            "inventory_value":float(row[3] or 0)
         }
         for row in data
     ]

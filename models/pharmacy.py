@@ -14,4 +14,5 @@ class Drug(Base):
     selling_price:Mapped[float]=mapped_column(Numeric(10,2))
     quantity_in_stock:Mapped[int]=mapped_column(Integer,default=0)
     reorder_level:Mapped[int]=mapped_column(Integer,default=10)
+    expiry_date:Mapped[datetime]=mapped_column(DateTime,default=datetime.utcnow)
     created_at:Mapped[datetime]=mapped_column(DateTime,default=datetime.utcnow)
