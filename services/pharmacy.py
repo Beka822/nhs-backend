@@ -233,7 +233,7 @@ def near_expiry_drugs(db:Session,current_user:User):
             "name":row[0],
             "quantity_in_stock":row[1],
             "expiry_date":str(row[2]),
-            "days_remaining":row[3].days
+            "days_remaining":row[3]
         }
         for row in data
     ]
