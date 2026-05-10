@@ -97,7 +97,7 @@ def top_selling_drugs(db:Session,current_user:User):
         for row in data
     ]
 def low_stock_drugs(db:Session,current_user:User):
-    return db.query(Drug).filter(Drug.hospital_id==current_user.hospital_id,Drug.quantity_in_stock <=Drug.reorder_level).all() or []
+    return db.query(Drug).filter(Drug.hospital_id==current_user.hospital_id,Drug.quantity_in_stock <= Drug.reorder_level).all() or []
 def pharmacy_payment_distribution(db:Session,current_user:User,period:str):
     start,end=get_period_range(period)
     query=text("""
