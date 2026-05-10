@@ -220,7 +220,9 @@ def near_expiry_drugs(db:Session,current_user:User):
                WHERE hospital_id=:hospital_id
                AND quantity_in_stock > 0
                AND expiry_date IS NOT NULL
-               AND expiry_date <= CURRENT_DATE + INTERVAL '30 days'
+               AND expiry_date 
+               BETWEEN CURRENT_DATE 
+               AND CURRENT_DATE + INTERVAL '30 days'
                ORDER BY expiry_date ASC
                """)
     data=db.execute(
@@ -245,7 +247,7 @@ def expired_drugs(db:Session,current_user:User):
                FROM drugs
                WHERE hospital_id=:hospital_id
                AND quantity_in_stock > 0
-               AND expiry_date < CURRENT_DATE
+               AND expiry_date <= CURRENT_DATE
                ORDER BY expiry_date
                """)
     data=db.execute(query,{
@@ -270,7 +272,9 @@ def expiring_inventory_value(db:Session,current_user:User):
                FROM drugs
                WHERE hospital_id=:hospital_id
                AND quantity_in_stock > 0
-               AND expiry_date <= CURRENT_DATE + INTERVAL '60 days'
+               AND expiry_date BETWEEN
+               CURRENT_DATE
+               AND CURRENT_DATE + INTERVAL '30 days'
                ORDER BY inventory_value DESC
                LIMIT 10
                """)
