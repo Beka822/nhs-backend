@@ -26,6 +26,7 @@ from routers.services_router import router as services_router
 from routers.dashboard_router import router as dashboard_router
 from routers.pharmacy_router import router as pharmacy_router
 from routers.pharmacysales_router import router as pharmacysales_router
+from routers.inventory_router import router as inventory_router
 from core.config import settings
 
 setup_logging()
@@ -64,6 +65,7 @@ app.include_router(services_router)
 app.include_router(dashboard_router)
 app.include_router(pharmacy_router)
 app.include_router(pharmacysales_router)
+app.include_router(inventory_router)
 
 
 
