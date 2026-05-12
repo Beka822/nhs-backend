@@ -19,4 +19,4 @@ class Drug(Base):
     reorder_level:Mapped[int]=mapped_column(Integer,default=10)
     expiry_date:Mapped[datetime]=mapped_column(DateTime,default=datetime.utcnow)
     created_at:Mapped[datetime]=mapped_column(DateTime,default=datetime.utcnow)
-    sales:Mapped[list["PharmacySale"]]=relationship("PharmacySale",back_populates="drugs")
+    sales:Mapped[list["PharmacySale"]]=relationship("PharmacySale",back_populates="drug")
