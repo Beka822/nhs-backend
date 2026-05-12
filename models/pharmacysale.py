@@ -1,6 +1,9 @@
 from sqlalchemy import String,Integer,Numeric,DateTime,ForeignKey
 from datetime import datetime
-from sqlalchemy.orm import Mapped,mapped_column
+from typing import TYPE_CHECKING
+if TYPE_CHECKING:
+    from models.pharmacy import Drug
+from sqlalchemy.orm import Mapped,mapped_column,relationship
 from core.db import Base
 class PharmacySale(Base):
     __tablename__="pharmacy_sales"
@@ -11,3 +14,4 @@ class PharmacySale(Base):
     total_price:Mapped[float]=mapped_column(Numeric,nullable=False)
     payment_method:Mapped[str]=mapped_column(String)
     sold_at:Mapped[datetime]=mapped_column(DateTime,default=datetime.utcnow)
+    drug:Mapped["Drug"]=relationship("Drug",back_populates="sales")

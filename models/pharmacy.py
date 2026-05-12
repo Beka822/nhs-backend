@@ -1,6 +1,9 @@
-from sqlalchemy.orm import Mapped,mapped_column
+from sqlalchemy.orm import Mapped,mapped_column,relationship
 from sqlalchemy import String,Integer,Numeric,DateTime,ForeignKey
 from sqlalchemy.sql import func
+from typing import TYPE_CHECKING
+if TYPE_CHECKING:
+    from models.pharmacysale import PharmacySale
 from datetime import datetime
 from core.db import Base
 class Drug(Base):
@@ -16,3 +19,4 @@ class Drug(Base):
     reorder_level:Mapped[int]=mapped_column(Integer,default=10)
     expiry_date:Mapped[datetime]=mapped_column(DateTime,default=datetime.utcnow)
     created_at:Mapped[datetime]=mapped_column(DateTime,default=datetime.utcnow)
+    sales:Mapped[list["PharmacySale"]]=relationship("PharmacySale",back_populates="drugs")

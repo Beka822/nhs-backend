@@ -5,6 +5,7 @@ from core.db import get_db
 from models.user import User
 from core.dependencies import get_user_object
 from models.pharmacy import Drug
+from models.pharmacysale import PharmacySale
 from fastapi.responses import StreamingResponse
 from openpyxl import Workbook
 from openpyxl.styles import Font
@@ -67,3 +68,58 @@ def export_inventory(db:Session=Depends(get_db),current_user:User=Depends(get_us
             "Content-Disposition":"attachment; filename=inventory_export.xlsx"
         }
     )
+@router.get("/sales")
+def export_sales(db:Session=Depends(get_db),current_user:User=Depends(get_user_object)):
+    sales=db.query(PharmacySale).filter(PharmacySale.hospital_id==current_user.hospital_id).all()
+    wb=Workbook()
+    ws=wb.active
+    ws.title="Pharmacy Sales"
+    ws.append(["PHARMACY SALES EXPORT"])
+    ws["A1"].font=Font(bold=True,size=14)
+    ws.append([])
+    headers=[
+        "Sale ID",
+        "Drug",
+        "Quantity",
+        "Payment Method",
+        "Total Price",
+        "Sold At"
+    ]
+    ws.append(headers)
+    for cell in ws[3]:
+        cell.font=Font(bold=True)
+    for sale in sales:
+        drug_name=""
+        if sale.drug:
+            drug_name=sale.drug.name
+        ws.append([
+            sale.sale_id,
+            drug_name,
+            sale.quantity,
+            sale.payment_method,
+            float(sale.total_price or 0),
+            str(sale.sold_at)
+        ])
+    for column in ws.columns:
+        max_length=0
+        try:
+            column_letter=column[0].column_letter
+        except:
+            continue
+        for cell in column:
+            try:
+                if len(str(cell.value)) > max_length:
+                    max_length=len(str(cell.value))
+            except:
+                pass
+        adjusted_width=max_length + 4
+        ws.column_dimensions[column_letter].width=adjusted_width
+    stream=BytesIO()
+    wb.save(stream)
+    stream.seek(0)
+    return StreamingResponse(stream,
+                             media_type="application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",
+                             headers={
+                                 "Content-Disposition":
+                                 "attachment;filename=sales_export.xlsx"
+                             })
